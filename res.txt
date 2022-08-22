@@ -1,0 +1,72 @@
+eps: 0.5
+C: 0.63
+    gamma: 1
+        m: 6
+        Theoretical n: 9588
+        Practical n: 56
+    gamma: 0.5
+        m: 12
+        Theoretical n: 75618
+        Practical n: 262
+    gamma: 0.1
+        m: 56
+        Theoretical n: 8738124
+        Practical n: 25600
+    gamma: 0.05
+        m: 112
+        Theoretical n: 69829528
+        Practical n: 208000
+eps: 0.7
+C: 0.97
+    gamma: 1
+        m: 12
+        Theoretical n: 25488
+        Practical n: 112
+    gamma: 0.5
+        m: 23
+        Theoretical n: 192646
+        Practical n: 575
+    gamma: 0.1
+        m: 114
+        Theoretical n: 23644352
+        Practical n: 68000
+    gamma: 0.05
+        m: 228
+        Theoretical n: 188950656
+        Practical n: 502400
+eps: 1
+C: 1.58
+    gamma: 1
+        m: 46
+        Theoretical n: 239944
+        Practical n: 625
+    gamma: 0.5
+        m: 91
+        Theoretical n: 1871942
+        Practical n: 4000
+    gamma: 0.1
+        m: 455
+        Theoretical n: 231768704
+        Practical n: 464000
+    gamma: 0.05
+        m: 909
+        Theoretical n: 1850113066
+        Practical n: 3302400
+eps: 2
+C: 4.62
+    gamma: 1
+        m: 100
+        Theoretical n: None
+        Practical n: 2600
+    gamma: 0.5
+        m: 200
+        Theoretical n: None
+        Practical n: 15600
+    gamma: 0.1
+        m: 1000
+        Theoretical n: None
+        Practical n: 1497600
+    gamma: 0.05
+        m: 2000
+        Theoretical n: None
+        Practical n: 11801600
