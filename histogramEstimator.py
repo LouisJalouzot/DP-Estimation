@@ -1,8 +1,4 @@
-from itertools import combinations
-
 import numpy as np
-from joblib import Parallel, delayed
-from joblib_progress import joblib_progress
 from tqdm.auto import tqdm
 
 np.random.seed(0)
@@ -29,11 +25,13 @@ class HistogramEstimator:
         self.k = int(np.ceil(3 * self.D * self.W / (self.tau * self.gamma)))
         self.m = int(np.ceil(6 * self.C * self.W / (self.tau * self.gamma_1)))
         self.n = self.compute_n()
-        print(f"{self.mechanism.__class__.__name__}:")
-        print(f"m = {self.m}, n = {self.n:,}, k = {self.k}")
-        print(f"Number of samples for one pair: {self.m * self.n:.3g}")
         print(
-            f"Number of samples for global estimation: {self.m * self.n * self.k * (self.k - 1) / 2:.3g}\n"
+            f"{self.mechanism.__class__.__name__} with C = {C}, D = {D}, delta = {delta}, gamma = {gamma}:"
+        )
+        print(f"m = {self.m}, n = {self.n:,}, k = {self.k}")
+        print(f"Number of samples for one pair: {2 * self.n:.3g}")
+        print(
+            f"Number of samples for global estimation: {self.n * self.k * (self.k - 1) / 2:.3g}\n"
         )
 
     def f(self, x, y, z):
@@ -76,16 +74,17 @@ class HistogramEstimator:
         Estimate epsilon between x1 and x2 if specified, otherwise estimate epsilon globally
         """
         # Setup bins
-        z_bins = np.linspace(self.a, self.b, self.k)
         if x1 is None or x2 is None:
-            means = np.linspace(self.a, self.b, self.m)
+            means = np.linspace(self.a, self.b, self.k)
         else:
             means = [x1, x2]
 
         counts = []
-        for x in tqdm(means):
-            samples = self.mechanism.sample(x, self.n).squeeze()
-            counts.append(np.histogram(samples, bins=z_bins, density=True)[0])
+        for x in tqdm(means, disable=len(means) <= 2):
+            samples = self.mechanism.sample(x, self.n)
+            counts.append(
+                np.histogram(samples, bins=self.m, range=(self.a, self.b))[0]
+            )
         counts = np.stack(counts)
 
         if (counts == 0).any():
@@ -127,26 +126,3 @@ if __name__ == "__main__":
         delta=delta,
         gamma=gamma,
     )
-
-    laplace_estimator.estimate(x1=0, x2=1, runs=1)
-    # Test single pair estimation
-    # print(f"Testing estimation between z1={a} and z2={b}")
-    # print(
-    #     f"Laplace estimate: {laplace_estimator.estimate(a, b):.3g} "
-    #     f"(expected: {laplace_estimator.epsilon:.3g} ± {laplace_estimator.gamma:.3g})"
-    # )
-    # print(
-    #     f"Gaussian estimate: {gaussian_estimator.estimate(a, b):.3g} "
-    #     f"(expected: {gaussian_estimator.epsilon:.3g} ± {gaussian_estimator.gamma:.3g})"
-    # )
-
-    # # Test global estimation
-    # print("\nTesting global estimation")
-    # print(
-    #     f"Laplace global estimate: {laplace_estimator.estimate(global_estimate=True):.3g} "
-    #     f"(expected: {laplace_estimator.epsilon:.3g} ± {laplace_estimator.gamma:.3g})"
-    # )
-    # print(
-    #     f"Gaussian global estimate: {gaussian_estimator.estimate(global_estimate=True):.3g} "
-    #     f"(expected: {gaussian_estimator.epsilon:.3g} ± {gaussian_estimator.gamma:.3g})"
-    # )
