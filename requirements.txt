@@ -1,2 +1,7 @@
+seaborn
 numpy
-matplotlib
+seaborn
+pandas
+plotly
+joblib
+joblib_progress

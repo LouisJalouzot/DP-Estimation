@@ -1,0 +1,14 @@
+[project]
+name = "dp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "joblib>=1.4.2",
+    "joblib-progress>=1.0.6",
+    "numpy>=2.2.0",
+    "pandas>=2.2.3",
+    "plotly>=5.24.1",
+    "seaborn>=0.13.2",
+]

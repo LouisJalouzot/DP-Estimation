@@ -1,43 +1,51 @@
 import numpy as np
 import pandas as pd
 import plotly.express as px
+from scipy.stats import truncnorm
 
 
-class TruncatedLaplace:
+class TruncatedGaussian:
     def __init__(self, a, b, scale):
         self.a = a
         self.b = b
-        self.W = self.b - self.a
         self.scale = scale
 
     def normalization_constant(self, mean):
-        exp_a = np.exp(-(mean - self.a) / self.scale)
-        exp_b = np.exp(-(self.b - mean) / self.scale)
+        a_norm = (self.a - mean) / self.scale
+        b_norm = (self.b - mean) / self.scale
 
-        return 1 / (self.scale * (2 - exp_a - exp_b))
-
-    def sample(self, mean, n):
-        normalization_constant = self.normalization_constant(mean)
-        exp_a = np.exp(-(mean - self.a) / self.scale)
-        f_mu = normalization_constant * self.scale * (1 - exp_a)
-        tab = np.random.uniform(size=n)
-        sgn = np.sign(f_mu - tab)
-        res = np.log(
-            1 + sgn * (tab / (normalization_constant * self.scale) + exp_a - 1)
+        return truncnorm.cdf(b_norm, a_norm, b_norm) - truncnorm.cdf(
+            a_norm, a_norm, b_norm
         )
 
-        return mean + sgn * self.scale * res
+    def sample(self, mean, n):
+        a_norm = (self.a - mean) / self.scale
+        b_norm = (self.b - mean) / self.scale
+        samples = truncnorm.rvs(
+            a_norm,
+            b_norm,
+            loc=mean,
+            scale=self.scale,
+            size=n,
+        )
+
+        return samples
 
     def true_density(self, mean, n):
-        normalization_constant = self.normalization_constant(mean)
         Z = np.linspace(self.a, self.b, n)
-        Y = normalization_constant * np.exp(-np.abs(Z - mean) / self.scale)
+        a_norm = (self.a - mean) / self.scale
+        b_norm = (self.b - mean) / self.scale
+        normalization_constant = self.normalization_constant(mean)
+        Y = (
+            truncnorm.pdf(Z, a_norm, b_norm, loc=mean, scale=self.scale)
+            / normalization_constant
+        )
 
         return Z, Y
 
 
 if __name__ == "__main__":
-    m = TruncatedLaplace(a=-0.5, b=2, scale=0.5)
+    m = TruncatedGaussian(a=-0.5, b=2, scale=0.5)
     x1, x2 = 0.3, 1.95
     n = 50000
     samples = np.concatenate((m.sample(x1, n), m.sample(x2, n)))
@@ -49,9 +57,9 @@ if __name__ == "__main__":
     df = pd.DataFrame(
         {
             "mean": np.repeat(means, n),
-            "samples": samples,
-            "Z": Z,
-            "density": Y,
+            "samples": samples.reshape(-1),
+            "Z": Z.reshape(-1),
+            "density": Y.reshape(-1),
         }
     )
     fig = px.histogram(
