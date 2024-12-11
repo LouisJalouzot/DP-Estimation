@@ -58,7 +58,7 @@ gaussian_parameters = [
 ]
 
 with open("results.csv", "w") as f:
-    f.write("mechanism,a,b,delta,gamma,runs,epsilon,k,m,n_th,n_pr\n")
+    f.write("mechanism,a,b,delta,gamma,runs,epsilon,D,C,k,m,n_th,n_pr\n")
     for mechanism_class, params_list in tqdm(
         [
             (TruncatedLaplace, laplace_parameters),
@@ -99,6 +99,8 @@ with open("results.csv", "w") as f:
                         estimator.gamma,
                         runs,
                         params["epsilon"],
+                        params["D"],
+                        params["C"],
                         estimator.k if estimator.k is not None else "Und.",
                         m if m is not None else "Und.",
                         f"{n_th:.1g}" if n_th is not None else "Und.",
