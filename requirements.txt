@@ -1,7 +1,0 @@
-seaborn
-numpy
-seaborn
-pandas
-plotly
-joblib
-joblib_progress
