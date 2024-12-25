@@ -71,7 +71,13 @@ with open("results.csv", "w") as f:
                 mechanism=mechanism,
                 a=a,
                 b=b,
-                **params,
+                C=params["C"],
+                D=params["D"],
+                epsilon=params["epsilon"],
+                delta=params["delta"],
+                gamma=params["gamma"],
+                renyi=False,  # set True if LRDP is needed
+                alpha=2.0,
             )
             n_th = estimator.n
             m = estimator.m
