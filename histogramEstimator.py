@@ -34,42 +34,64 @@ class HistogramEstimator:
         self.renyi = renyi
         self.alpha = alpha
         if self.renyi:
+            # Parameters from eq. (12)
             self.tau_0 = 1 / self.W - (self.C * self.W) / 2
             self.tau_1 = 1 / self.W + (self.C * self.W) / 2
+
             if self.tau_0 <= 0:
                 self.k = self.m = self.n = None
                 print(
                     "Negative or zero tau_0, define k, m, n manually for renyi."
                 )
-            else:
-                # K, K', gamma'
-                self.K = (
-                    2
-                    * (self.tau_1**self.alpha)
-                    / (self.tau_0 ** (self.alpha - 1))
+                return
+
+            # Constants K and K' from eq. (13)
+            self.K = (
+                2 * (self.tau_1**self.alpha) / (self.tau_0 ** (self.alpha - 1))
+            )
+            self.K_p = (self.tau_0**self.alpha) / (
+                self.tau_1 ** (self.alpha - 1)
+            )
+
+            # gamma' from eq. (14)
+            self.gamma_p = min(
+                (self.gamma * self.K_p * (self.alpha - 1))
+                / (2 * self.K * (2 * self.alpha - 1)),
+                np.log(2) / (2 * self.alpha - 1),
+            )
+
+            # m from eq. (15): CwK(2α-1)/(2τ₀K'(α-1)) ≤ γ/2
+            # Solving for m where w = W/m
+            self.m = int(
+                np.ceil(
+                    self.C
+                    * self.W
+                    * self.K
+                    * (2 * self.alpha - 1)
+                    / (self.gamma * self.tau_0 * self.K_p * (self.alpha - 1))
                 )
-                self.Kp = (self.tau_0**self.alpha) / (
-                    self.tau_1 ** (self.alpha - 1)
+            )
+
+            # k from eq. (18)
+            self.k = int(
+                np.ceil(
+                    3
+                    * (2 * self.alpha - 1)
+                    * self.K
+                    * self.D
+                    * self.W
+                    / (
+                        2
+                        * (self.alpha - 1)
+                        * self.K_p
+                        * self.tau_0
+                        * self.gamma
+                    )
                 )
-                self.gamma_p = min(
-                    (self.gamma * self.Kp * (self.alpha - 1))
-                    / (2 * self.K * (2 * self.alpha - 1)),
-                    np.log(2) / (2 * self.alpha - 1),
-                )
-                # m from (defM)
-                # gamma/2 >= C*w*K*(2alpha -1)/(2*tau_0*K'*(alpha-1))
-                # w = W/m => m >= ...
-                denom = (
-                    (self.gamma / 2)
-                    * 2
-                    * self.tau_0
-                    * self.Kp
-                    * (self.alpha - 1)
-                )
-                num = self.C * self.W * self.K * (2 * self.alpha - 1)
-                self.m = int(np.ceil(num / denom))
-                # n from (nRDPdef)
-                self.n = self.compute_n_renyi()
+            )
+
+            # n from eq. (16)
+            self.n = self.compute_n_renyi()
         else:
             self.tau = 1 / self.W - (self.C * self.W) / 2
             if self.tau > 0:
@@ -124,31 +146,32 @@ class HistogramEstimator:
 
         return n_high
 
+    def ndef_equation_satisfied_renyi(self, n, w_tau_0):
+        lhs = (
+            1
+            - 2 * self.m * (1 - w_tau_0) ** n
+            - 2 * self.m * self.f(n, w_tau_0, self.gamma_p)
+        )
+        return lhs >= self.delta
+
     def compute_n_renyi(self):
         """
-        Compute n for LRDP following the definitions from the renyi_dp.tex file.
+        Compute n for LRDP following eq. (16):
+        1 - 2m(1 - w*tau_0)^n - 2m*f(n, w*tau_0, gamma') ≥ conf
+        where w = W/m
         """
         w_tau_0 = self.W * self.tau_0 / self.m
 
-        def ndef_equation_satisfied_renyi(n):
-            # eqn: 1 - 2m(1 - w_tau_0)^n - 2m*f(n, w_tau_0, self.gamma_p) >= self.delta
-            lhs = (
-                1
-                - 2 * self.m * (1 - w_tau_0) ** n
-                - 2 * self.m * self.f(n, w_tau_0, self.gamma_p)
-            )
-            return lhs >= self.delta
-
         # Find upper bound
         n_high = 1
-        while not ndef_equation_satisfied_renyi(n_high):
+        while not self.ndef_equation_satisfied_renyi(n_high, w_tau_0):
             n_high *= 2
 
-        # Binary search
+        # Binary search for smallest valid n
         n_low = n_high // 2
         while n_low < n_high - 1:
             n_mid = (n_low + n_high) // 2
-            if ndef_equation_satisfied_renyi(n_mid):
+            if self.ndef_equation_satisfied_renyi(n_mid, w_tau_0):
                 n_high = n_mid
             else:
                 n_low = n_mid
@@ -180,13 +203,19 @@ class HistogramEstimator:
         if (counts == 0).any():
             return np.nan
 
-        divs = counts[:, None] / counts[None]
-
         if self.renyi:
-            # Example LRDP approach: 1/(alpha-1) * log( sum_j((N_j/M_j)^alpha * 1/n * M_j) )
-            # ...new code using counts...
-            return float("nan")  # placeholder
+            # From eq. (17)
+            # 1/(alpha-1) * log(sum_j((N_j/M_j)^alpha * 1/n * M_j))
+            # N_j / M_j
+            ratios = counts[0] / counts[1]
+            # (N_j/M_j)^alpha * 1/n * M_j
+            weighted_sum = ratios**self.alpha * counts[1] / self.n
+            weighted_sum = weighted_sum.sum()
+
+            return (1 / (self.alpha - 1)) * np.log(weighted_sum).item()
         else:
+            divs = counts[:, None] / counts[None]
+
             return np.log(max(divs.max(), 1.0 / divs.min())).item()
 
 
