@@ -76,7 +76,7 @@ rdp_laplace_parameters = [
 rdp_gaussian_parameters = [
     (
         1.5,
-        {"D": 0.23, "C": 0.38, "epsilon": 0.016, "gamma": 0.04, "delta": 0.95},
+        {"D": 0.23, "C": 0.38, "epsilon": 0.016, "gamma": 0.004, "delta": 0.95},
     ),
     (
         2.0,
