@@ -1,4 +1,5 @@
 import numpy as np
+from joblib import Parallel, delayed
 from tqdm.auto import tqdm
 
 from histogramEstimator import HistogramEstimator
@@ -152,16 +153,25 @@ with tqdm(total=n_exp) as pbar:
 
             n_pr = 1
             while True:
+                estimator.n = n_pr
                 valid = 0
-                for run in range(1, runs + 1):
-                    estimator.n = n_pr
-                    estimate = estimator.estimate(0, 1)
+                n_res = 0
+                if n_pr > 1e7:
+                    n_jobs = 10
+                    prefer = "processes"
+                else:
+                    n_jobs = -1
+                    prefer = "threads"
+                for estimate in Parallel(
+                    n_jobs=n_jobs, return_as="generator", prefer=prefer
+                )(delayed(estimator.estimate)(0, 1) for _ in range(runs)):
                     error = abs(estimate - estimator.epsilon)
-                    pbar.set_description(
-                        f"n = {n_pr:.2g}, run = {run}/{runs}, error = {error:.2g} (need < {estimator.gamma:.2g}), valid_ratio = {valid / run:.2g} (need > {estimator.delta})"
-                    )
-                    if error < estimator.gamma:
+                    n_res += 1
+                    if error <= estimator.gamma:
                         valid += 1
+                    pbar.set_description(
+                        f"n = {n_pr:.2g}, run = {n_res}/{runs}, valid_ratio = {valid / n_res:.2g} (need > {estimator.delta}), error = {error:.2g} (need < {estimator.gamma})"
+                    )
                 if valid / runs >= estimator.delta:
                     break
                 n_pr *= 2
