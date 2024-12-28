@@ -17,7 +17,9 @@ class HistogramEstimator:
         gamma=None,
         renyi=False,
         alpha=2.0,
+        verbose=True,
     ):
+        self.verbose = verbose
         self.mechanism = mechanism
         self.a = a
         self.b = b
@@ -40,9 +42,10 @@ class HistogramEstimator:
 
             if self.tau_0 <= 0:
                 self.k = self.m = self.n = None
-                print(
-                    "Negative or zero tau_0, define k, m, n manually for renyi."
-                )
+                if self.verbose:
+                    print(
+                        "Negative or zero tau_0, define k, m, n manually for renyi."
+                    )
                 return
 
             # Constants K and K' from eq. (13)
@@ -103,17 +106,19 @@ class HistogramEstimator:
                     np.ceil(6 * self.C * self.W / (self.tau * self.gamma_1))
                 )
                 self.n = self.compute_n()
-                print(
-                    f"{self.mechanism.__class__.__name__} with C = {C}, D = {D}, delta = {delta}, gamma = {gamma}:"
-                )
-                print(f"m = {self.m}, n = {self.n:,}, k = {self.k}")
-                print(f"Number of samples for one pair: {2 * self.n:.3g}")
-                print(
-                    f"Number of samples for global estimation: {self.n * self.k * (self.k - 1) / 2:.3g}\n"
-                )
+                if self.verbose:
+                    print(
+                        f"{self.mechanism.__class__.__name__} with C = {C}, D = {D}, delta = {delta}, gamma = {gamma}:"
+                    )
+                    print(f"m = {self.m}, n = {self.n:,}, k = {self.k}")
+                    print(f"Number of samples for one pair: {2 * self.n:.3g}")
+                    print(
+                        f"Number of samples for global estimation: {self.n * self.k * (self.k - 1) / 2:.3g}\n"
+                    )
             else:
                 self.k = self.m = self.n = None
-                print("Negative tau, define k, m, n manually")
+                if self.verbose:
+                    print("Negative tau, define k, m, n manually")
 
     def f(self, x, y, z):
         exp_1 = np.exp(-x * y * (np.exp(z) - 1) ** 2 / (1 + np.exp(z)))
